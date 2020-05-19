@@ -1,6 +1,5 @@
 package main
 
-// 需要导入 syscall/js 包以调用 js API
 import (
 	"math/rand"
 	"syscall/js"
@@ -8,19 +7,17 @@ import (
 )
 
 const (
-	width = 400
-	height = 400
+	width = 600
+	height = 600
 )
 
-// 生成 0 - 1 的随机数
 func getRandomNum() float32 {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	n := float32(rand.Intn(10000))
 	return  n / 10000.0
 }
 
-// 使用 canvas 绘制随机图
-func draw() {
+func render() {
 	var canvas js.Value = js.
 		Global().
 		Get("document").
@@ -28,12 +25,10 @@ func draw() {
 
 	var context js.Value = canvas.Call("getContext", "2d")
 
-	// reset
 	canvas.Set("height", height)
 	canvas.Set("width", width)
 	context.Call("clearRect", 0, 0, width, height)
 
-        // 随机绘制 50 条直线
 	for i := 0; i < 50; i ++ {
 		context.Call("beginPath")
 		context.Call("moveTo", getRandomNum() * width, getRandomNum() * height)
@@ -42,9 +37,28 @@ func draw() {
 	}
 }
 
-// 主程序入口
+
+func addEventListener()  {
+	done := make(chan struct{})
+	var cb js.Func
+    cb = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+        render()
+        return nil
+    })
+	js.Global().Get("document").
+		Call("getElementById", "canvas").
+		Call("addEventListener", "click", cb)
+	<-done
+
+}
+
+func bootstrapApp() {
+	render()
+	addEventListener()
+}
+
 func main() {
 	println("wasm app works")
 	// bootstrap app
-	draw()
+	bootstrapApp()
 }

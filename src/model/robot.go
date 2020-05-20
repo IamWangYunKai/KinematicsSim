@@ -12,7 +12,3 @@ type Action struct {
 	V float64
 	W float64
 }
-
-//func(robot *Robot) SetX(x float64) {
-//	robot.X = x
-//}

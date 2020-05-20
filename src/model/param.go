@@ -12,4 +12,5 @@ const (
 	DT float64 = 1.0/100.
 	MAX_STEP_V = MAX_ACC*DT
 	MAX_STEP_W = MAX_ALPHA*DT
+	LISTEN_PORT = 10006
 )

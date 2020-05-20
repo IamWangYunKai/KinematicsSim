@@ -21,14 +21,22 @@ func normalize(theta float64) float64 {
 }
 
 func Step(robotMap map[string]model.Robot, actionMap map[string]model.Action){
+	var mutex sync.Mutex
 	var wg sync.WaitGroup
 	wg.Add(len(robotMap))
 
-	for robotId, robot := range robotMap {
-		go func() {
-			defer wg.Done()
+	var ids []string
+	for id, _ := range robotMap{
+		ids = append(ids, id)
+	}
 
+	for _, robotId := range ids {
+		go func(robotId string) {
+			defer wg.Done()
 			action := actionMap[robotId]
+			mutex.Lock()
+			robot := robotMap[robotId]
+			mutex.Unlock()
 
 			dv := action.V - robot.V
 			dv = clip(dv, -model.MAX_STEP_V, model.MAX_STEP_V)
@@ -52,11 +60,11 @@ func Step(robotMap map[string]model.Robot, actionMap map[string]model.Action){
 
 			robot.Theta += robot.W * model.DT
 			robot.Theta = normalize(robot.Theta)
-
+			mutex.Lock()
 			robotMap[robotId] = robot
-		}()
+			mutex.Unlock()
+		}(robotId)
 	}
-
 	wg.Wait()
 }
 

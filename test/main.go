@@ -1,64 +1,38 @@
 package main
 
 import (
+	"./dynamics"
+	"./model"
 	"math/rand"
-	"syscall/js"
-	"time"
+	"strconv"
 )
 
-const (
-	width = 600
-	height = 600
-)
+var robotMap = make(map[string]model.Robot)
+var actionMap = make(map[string]model.Action)
 
-func getRandomNum() float32 {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	n := float32(rand.Intn(10000))
-	return  n / 10000.0
-}
-
-func render() {
-	var canvas js.Value = js.
-		Global().
-		Get("document").
-		Call("getElementById", "canvas")
-
-	var context js.Value = canvas.Call("getContext", "2d")
-
-	canvas.Set("height", height)
-	canvas.Set("width", width)
-	context.Call("clearRect", 0, 0, width, height)
-
-	for i := 0; i < 50; i ++ {
-		context.Call("beginPath")
-		context.Call("moveTo", getRandomNum() * width, getRandomNum() * height)
-		context.Call("lineTo", getRandomNum() * width, getRandomNum() * height)
-		context.Call("stroke")
+func addRobot(id string, x float64, y float64, theta float64){
+	robotMap[id] = model.Robot{
+		X: x,
+		Y: y,
+		Theta: theta,
+		V: 0.0,
+		W: 0.0,
+	}
+	actionMap[id] = model.Action{
+		V: 10.0,
+		W: 0.0,
 	}
 }
 
-
-func addEventListener()  {
-	done := make(chan struct{})
-	var cb js.Func
-    cb = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-        render()
-        return nil
-    })
-	js.Global().Get("document").
-		Call("getElementById", "canvas").
-		Call("addEventListener", "click", cb)
-	<-done
-
-}
-
-func bootstrapApp() {
-	render()
-	addEventListener()
-}
-
 func main() {
-	println("wasm app works")
-	// bootstrap app
-	bootstrapApp()
+
+	for i := 0; i < 5; i++ {
+		id := strconv.Itoa(rand.Intn(10000))
+		addRobot(id, 0.0, 0.0, 0.0)
+	}
+
+	for i := 0; i < 50; i++ {
+		dynamics.Step(robotMap, actionMap)
+	}
+	dynamics.ShowInfo(robotMap)
 }

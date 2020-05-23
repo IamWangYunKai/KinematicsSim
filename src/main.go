@@ -5,14 +5,17 @@ import (
 	"./model"
 	"encoding/json"
 	"fmt"
-	"sync"
+	"math/rand"
 	"net"
+	"sync"
 )
 
 var done = make(chan struct{})
 
 var robotMap = make(map[string]model.Robot)
 var actionMap = make(map[string]model.Action)
+
+var obstacleMap = make(map[string]model.Obstacle)
 
 type Message struct {
 	Mtype string
@@ -33,6 +36,33 @@ func addRobot(id string, x float64, y float64, theta float64){
 		V: 0.0,
 		W: 0.0,
 	}
+}
+
+func addObstacle(id string, x float64, y float64, r float64){
+	obstacleMap[id] = model.Obstacle{
+		X: x,
+		Y: y,
+		R: r,
+	}
+}
+
+func addRandomObstacles(num int){
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(num)
+	for i:=0; i<num; i++{
+		go func() {
+			defer wg.Done()
+			id := string(rand.Intn(999999))
+			x := 2 * model.MAX_X * rand.Float64() - model.MAX_X
+			y := 2 * model.MAX_Y * rand.Float64() - model.MAX_Y
+			r := 5 * rand.Float64()
+			mutex.Lock()
+			addObstacle(id, x, y, r)
+			mutex.Unlock()
+		}()
+	}
+	wg.Wait()
 }
 
 func read(socket *net.UDPConn){
@@ -80,7 +110,7 @@ func read(socket *net.UDPConn){
 				fmt.Println("No robot ID:", message.Id)
 			}
 		} else if message.Mtype == "step" {
-			dynamics.Step(robotMap, actionMap)
+			dynamics.Step(robotMap, actionMap, obstacleMap)
 			dynamics.ShowInfo(robotMap)
 		} else {
 			fmt.Println("Error message", message)
@@ -89,6 +119,7 @@ func read(socket *net.UDPConn){
 }
 
 func main() {
+	addRandomObstacles(10)
 	clientAddr := &net.UDPAddr{IP: net.IPv4zero, Port: model.LISTEN_PORT}
 	clientListener, err := net.ListenUDP("udp", clientAddr)
 	if err != nil {

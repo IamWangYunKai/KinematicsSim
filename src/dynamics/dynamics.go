@@ -1,6 +1,7 @@
 package dynamics
 
 import (
+	"../lidar"
 	"../model"
 	"math"
 	"sync"
@@ -20,7 +21,7 @@ func normalize(theta float64) float64 {
 	}
 }
 
-func Step(robotMap map[string]model.Robot, actionMap map[string]model.Action){
+func Step(robotMap map[string]model.Robot, actionMap map[string]model.Action, obstacleMap map[string]model.Obstacle){
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
 	wg.Add(len(robotMap))
@@ -62,6 +63,19 @@ func Step(robotMap map[string]model.Robot, actionMap map[string]model.Action){
 			robot.Theta = normalize(robot.Theta)
 			mutex.Lock()
 			robotMap[robotId] = robot
+			mutex.Unlock()
+		}(robotId)
+	}
+	wg.Wait()
+
+	wg.Add(len(robotMap))
+	distanceArrayMap := make(map[string][]float64)
+	for _, robotId := range ids {
+		go func(robotId string) {
+			defer wg.Done()
+			distanceArray := lidar.LaserDetection(robotMap, obstacleMap, robotId)
+			mutex.Lock()
+			distanceArrayMap[robotId] = distanceArray
 			mutex.Unlock()
 		}(robotId)
 	}
